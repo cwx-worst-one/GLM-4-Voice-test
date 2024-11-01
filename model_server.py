@@ -142,3 +142,8 @@ if __name__ == "__main__":
 
     worker = ModelWorker(args.model_path, args.dtype, args.device)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
+
+
+# python model_server.py --host localhost --model-path THUDM/glm-4-voice-9b --port 10000 --dtype bfloat16 --device cuda:0
+# debugpy
+# python -m debugpy --listen 5678 --wait-for-client model_server.py --host localhost --model-path THUDM/glm-4-voice-9b --port 10000 --dtype bfloat16 --device cuda:0

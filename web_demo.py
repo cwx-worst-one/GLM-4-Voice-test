@@ -256,3 +256,7 @@ if __name__ == "__main__":
         server_port=args.port,
         server_name=args.host
     )
+
+
+# python web_demo.py --tokenizer-path  THUDM/glm-4-voice-tokenizer --model-path THUDM/glm-4-voice-9b --flow-path ./glm-4-voice-decoder --port 7777
+# python -m debugpy --listen 5678 --wait-for-client web_demo.py --tokenizer-path  THUDM/glm-4-voice-tokenizer --model-path THUDM/glm-4-voice-9b --flow-path ./glm-4-voice-decoder --port 7777
