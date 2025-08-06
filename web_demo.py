@@ -23,6 +23,7 @@ import torch
 audio_token_pattern = re.compile(r"<\|audio_(\d+)\|>")
 
 from flow_inference import AudioDecoder
+from audio_process import AudioStreamProcessor
 
 if __name__ == "__main__":
     parser = ArgumentParser()
@@ -125,13 +126,18 @@ if __name__ == "__main__":
             tts_mels = []
             prev_mel = None
             is_finalize = False
-            block_size = 10
+            block_size_list =  [25,50,100,150,200]
+            block_size_idx = 0
+            block_size = block_size_list[block_size_idx]
+            audio_processor = AudioStreamProcessor()
             for chunk in response.iter_lines():
                 token_id = json.loads(chunk)["token_id"]
                 if token_id == end_token_id:
                     is_finalize = True
                 if len(audio_tokens) >= block_size or (is_finalize and audio_tokens):
-                    block_size = 20
+                    if block_size_idx < len(block_size_list) - 1:
+                        block_size_idx += 1
+                        block_size = block_size_list[block_size_idx]
                     tts_token = torch.tensor(audio_tokens, device=device).unsqueeze(0)
 
                     if prev_mel is not None:
@@ -143,9 +149,12 @@ if __name__ == "__main__":
                                                                   finalize=is_finalize)
                     prev_mel = tts_mel
 
+                    audio_bytes = audio_processor.process(tts_speech.clone().cpu().numpy()[0], last=is_finalize)
+
                     tts_speechs.append(tts_speech.squeeze())
                     tts_mels.append(tts_mel)
-                    yield history, inputs, '', '', (22050, tts_speech.squeeze().cpu().numpy()), None
+                    if audio_bytes:
+                        yield history, inputs, '', '', audio_bytes, None
                     flow_prompt_speech_token = torch.cat((flow_prompt_speech_token, tts_token), dim=-1)
                     audio_tokens = []
                 if not is_finalize:
