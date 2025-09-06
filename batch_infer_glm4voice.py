@@ -6,6 +6,7 @@ import sys
 import json
 import uuid
 import argparse
+import re
 from pathlib import Path
 
 import torch
@@ -193,7 +194,10 @@ def run_audio_mode(args, models):
     in_dir = Path(args.input_path)
     assert in_dir.is_dir(), f"WAV dir not found: {in_dir}"
 
-    wavs = sorted([p for p in in_dir.glob("*.wav")])
+    def natural_key(path):
+        return [int(s) if s.isdigit() else s for s in re.split(r'(\d+)', path.stem)]
+
+    wavs = sorted(in_dir.glob("*.wav"), key=natural_key)
     outdir = Path(args.output_dir)
     outdir.mkdir(parents=True, exist_ok=True)
     text_out = outdir / "text_output.jsonl"
@@ -229,7 +233,7 @@ def run_audio_mode(args, models):
                 text, audio_ids = parse_generation(out_ids, models["end_q"], models["audio_offset"], models["glm_tokenizer"])
 
                 # 声码
-                wav, sr = vocode(audio_ids, models["audio_decoder"], args.device)
+                wav = vocode(audio_ids, models["audio_decoder"], args.device)
                 if wav is None:
                     fout.write(json.dumps({"utt": utt, "output": text}, ensure_ascii=False) + "\n")
                     fout.flush()
@@ -240,6 +244,7 @@ def run_audio_mode(args, models):
             except Exception as e:
                 # 出错不中断
                 # 也可在这里写一条错误日志到 jsonl 以便定位
+                tqdm.write(f"[Error] {wav_path}: {e}")
                 pass
             finally:
                 pbar.update(1)
@@ -297,5 +302,5 @@ if __name__ == "__main__":
 # Audio mode example:
 # HF_ENDPOINT="https://hf-mirror.com" python batch_infer_glm4voice.py \
 #   --input-mode audio \
-#   --input-path /path/to/wav_dir \
-#   --output-dir /path/to/outdir
+#   --input-path /root/data/safety/audio/XSTest \
+#   --output-dir /root/data/safety/model_answer/GLM-4-Voice/audio_in
